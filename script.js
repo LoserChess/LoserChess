@@ -322,14 +322,14 @@ function canCastle(fromRow, fromCol, toCol) {
   }
 
   // Check if the path is clear
-  const startCol = Math.min(fromCol, toCol);
-  const endCol = Math.max(fromCol, toCol);
+  const startCol = Math.min(fromCol, rookCol);
+  const endCol = Math.max(fromCol, rookCol);
   for (let col = startCol + 1; col < endCol; col++) {
     if (
       document.querySelector(`[data-row="${fromRow}"][data-col="${col}"]`)
         .dataset.piece
     ) {
-      return false;
+      return false; // Path is not clear
     }
   }
 
