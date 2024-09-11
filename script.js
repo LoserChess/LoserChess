@@ -182,6 +182,29 @@ function highlightCapturablePieces() {
   highlightEnPassantOpportunities();
 }
 
+function hasLegalMoves() {
+  for (let fromRow = 0; fromRow < 8; fromRow++) {
+    for (let fromCol = 0; fromCol < 8; fromCol++) {
+      const fromSquare = document.querySelector(
+        `[data-row="${fromRow}"][data-col="${fromCol}"]`
+      );
+      if (fromSquare.dataset.piece && fromSquare.dataset.piece.startsWith(currentPlayer)) {
+        for (let toRow = 0; toRow < 8; toRow++) {
+          for (let toCol = 0; toCol < 8; toCol++) {
+            const toSquare = document.querySelector(
+              `[data-row="${toRow}"][data-col="${toCol}"]`
+            );
+            if (isValidMove(fromSquare, toSquare)) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
 function clearCaptureHighlights() {
   document.querySelectorAll(".capture-highlight").forEach((square) => {
     square.classList.remove("capture-highlight");
@@ -435,7 +458,7 @@ function isCastlingMove(pieceType, fromRow, fromCol, toRow, toCol) {
 }
 
 function updateStatus() {
-  statusDisplay.textContent = `Current Player: ${currentPlayer}`;
+  statusDisplay.textContent = `Current player: ${currentPlayer}`;
 }
 
 // UPDATED FUNCTION
@@ -513,6 +536,15 @@ function finishTurn() {
   currentPlayer = currentPlayer === "white" ? "black" : "white";
   updateStatus();
   highlightCapturablePieces();
+
+  // Check if the current player has any legal moves
+  if (!hasLegalMoves()) {
+    // If no legal moves, switch to the other player
+    currentPlayer = currentPlayer === "white" ? "black" : "white";
+    updateStatus();
+    highlightCapturablePieces();
+    statusDisplay.textContent += " - No legal moves, turn skipped.";
+  }
 }
 
 createBoard();
