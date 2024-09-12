@@ -7,8 +7,30 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="chessboard" id="chessboard"></div>
-    <div id="status"></div>
+    <div class="game-container">
+        <div class="board-container">
+            <div class="file-labels">
+                <div>a</div><div>b</div><div>c</div><div>d</div>
+                <div>e</div><div>f</div><div>g</div><div>h</div>
+            </div>
+            <div class="board-wrapper">
+                <div class="rank-labels">
+                    <div>8</div><div>7</div><div>6</div><div>5</div>
+                    <div>4</div><div>3</div><div>2</div><div>1</div>
+                </div>
+                <div id="chessboard" class="chessboard"></div>
+                <div class="rank-labels">
+                    <div>8</div><div>7</div><div>6</div><div>5</div>
+                    <div>4</div><div>3</div><div>2</div><div>1</div>
+                </div>
+            </div>
+            <div class="file-labels">
+                <div>a</div><div>b</div><div>c</div><div>d</div>
+                <div>e</div><div>f</div><div>g</div><div>h</div>
+            </div>
+        </div>
+        <div id="status"></div>
+    </div>
     <div id="promotionModal" class="promotion-modal">
         <h2>Choose promotion piece:</h2>
         <div id="promotionPieces"></div>
