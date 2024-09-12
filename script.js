@@ -20,6 +20,11 @@ let whiteCastlingRights = { kingSide: true, queenSide: true };
 let blackCastlingRights = { kingSide: true, queenSide: true };
 
 let lastMove = null;
+let gameEnded = false;
+
+// New variables for 3-fold repetition and 50-move rules
+let positionHistory = [];
+let movesSinceCaptureOrPawn = 0;
 
 function createBoard() {
   for (let row = 0; row < 8; row++) {
@@ -165,26 +170,34 @@ function isValidMove(from, to) {
 }
 
 function checkGameEnd() {
-    if (gameEnded) return true; // Prevent multiple checks if the game has already ended
+  if (gameEnded) return true;
 
-    const whitePieces = document.querySelectorAll('[data-piece^="white"]');
-    const blackPieces = document.querySelectorAll('[data-piece^="black"]');
+  const whitePieces = document.querySelectorAll('[data-piece^="white"]');
+  const blackPieces = document.querySelectorAll('[data-piece^="black"]');
 
-    if (whitePieces.length === 0) {
-        showEndScreen('White', 'win');
-        gameEnded = true;
-        return true;
-    } else if (blackPieces.length === 0) {
-        showEndScreen('Black', 'win');
-        gameEnded = true;
-        return true;
-    } else if (!hasLegalMoves('white') && !hasLegalMoves('black')) {
-        showEndScreen(null, 'draw');
-        gameEnded = true;
-        return true;
-    }
+  if (whitePieces.length === 0) {
+    showEndScreen('White', 'win');
+    gameEnded = true;
+    return true;
+  } else if (blackPieces.length === 0) {
+    showEndScreen('Black', 'win');
+    gameEnded = true;
+    return true;
+  } else if (!hasLegalMoves('white') && !hasLegalMoves('black')) {
+    showEndScreen(null, 'draw');
+    gameEnded = true;
+    return true;
+  } else if (isThreefoldRepetition()) {
+    showEndScreen(null, 'draw', 'Threefold Repetition');
+    gameEnded = true;
+    return true;
+  } else if (movesSinceCaptureOrPawn >= 100) {
+    showEndScreen(null, 'draw', '50-Move Rule');
+    gameEnded = true;
+    return true;
+  }
 
-    return false;
+  return false;
 }
 
 function highlightCapturablePieces() {
@@ -398,6 +411,16 @@ function movePiece(from, to) {
     const toRow = parseInt(to.dataset.row);
     const toCol = parseInt(to.dataset.col);
 
+    // Check if it's a capture or pawn move
+  const isCapture = to.dataset.piece || isEnPassant(fromRow, fromCol, toRow, toCol);
+  const isPawnMove = pieceType === '♙' || pieceType === '♟';
+
+  if (isCapture || isPawnMove) {
+    movesSinceCaptureOrPawn = 0;
+  } else {
+    movesSinceCaptureOrPawn++;
+  }
+  
     // Check for en passant capture
     if ((pieceType === '♙' || pieceType === '♟') && Math.abs(fromCol - toCol) === 1 && !to.dataset.piece) {
         const capturedPawnRow = currentPlayer === 'white' ? toRow + 1 : toRow - 1;
@@ -445,13 +468,13 @@ function movePiece(from, to) {
     // Update lastMove for en passant
     lastMove = [fromRow, fromCol, toRow, toCol];
   
-    highlightCapturablePieces();
+      updatePositionHistory();
 
-    // Check for win condition immediately after the move
-    if (checkGameEnd()) {
-        return; // If the game has ended, don't proceed with the turn
-    }
-  checkGameEnd();
+  highlightCapturablePieces();
+
+  if (checkGameEnd()) {
+    return;
+  }
 }
 
 function highlightValidMoves(piece) {
@@ -492,58 +515,53 @@ function checkWinCondition() {
     return false;
 }
 
-function showEndScreen(winner, endType) {
-    const endScreen = document.createElement('div');
-    endScreen.className = 'end-screen';
-    
-    if (endType === 'win') {
-        endScreen.innerHTML = `
-            <h1>${winner} Wins!</h1>
-            <p>${winner} was able to lose all of their pieces and won the game!</p>
-            <button onclick="resetGame()">Play Again</button>
-        `;
-    } else if (endType === 'draw') {
-        endScreen.innerHTML = `
-            <h1>Draw!</h1>
-            <p>Neither player can make a legal move, so this game ends in a draw.</p>
-            <button onclick="resetGame()">Play Again</button>
-        `;
-    }
-    
-    document.body.appendChild(endScreen);
+function showEndScreen(winner, endType, reason = '') {
+  const endScreen = document.createElement('div');
+  endScreen.className = 'end-screen';
+  
+  if (endType === 'win') {
+    endScreen.innerHTML = `
+      <h1>${winner} Wins!</h1>
+      <p>${winner} was able to lose all of their pieces and won the game!</p>
+      <button onclick="resetGame()">Play Again</button>
+    `;
+  } else if (endType === 'draw') {
+    endScreen.innerHTML = `
+      <h1>Draw!</h1>
+      <p>${reason ? reason : 'Neither player can make a legal move, so this game ends in a draw.'}</p>
+      <button onclick="resetGame()">Play Again</button>
+    `;
+  }
+  
+  document.body.appendChild(endScreen);
 
-    // Disable further moves
-    board.removeEventListener('click', handleClick);
+  board.removeEventListener('click', handleClick);
 }
 
 function resetGame() {
-    // Remove end screen
-    const endScreen = document.querySelector('.end-screen');
-    if (endScreen) {
-        endScreen.remove();
-    }
+  const endScreen = document.querySelector('.end-screen');
+  if (endScreen) {
+    endScreen.remove();
+  }
 
-    // Reset the board
-    board.innerHTML = '';
-    createBoard();
-    
-    // Reset game state
-    currentPlayer = "white";
-    selectedPiece = null;
-    promotionSquare = null;
-    whiteCastlingRights = { kingSide: true, queenSide: true };
-    blackCastlingRights = { kingSide: true, queenSide: true };
-    lastMove = null;
-    gameEnded = false;
+  board.innerHTML = '';
+  createBoard();
+  
+  currentPlayer = "white";
+  selectedPiece = null;
+  promotionSquare = null;
+  whiteCastlingRights = { kingSide: true, queenSide: true };
+  blackCastlingRights = { kingSide: true, queenSide: true };
+  lastMove = null;
+  gameEnded = false;
+  positionHistory = [];
+  movesSinceCaptureOrPawn = 0;
 
-    updateStatus();
-    highlightCapturablePieces();
+  updateStatus();
+  highlightCapturablePieces();
 
-    // Re-enable moves
-    board.addEventListener('click', handleClick);
+  board.addEventListener('click', handleClick);
 }
-
-let gameEnded = false;
 
 // NEW FUNCTION
 function isCastlingMove(pieceType, fromRow, fromCol, toRow, toCol) {
@@ -625,27 +643,48 @@ function isCapture(from, to) {
 }
 
 function finishTurn() {
-    if (gameEnded) return; // Prevent further turns if the game has ended
+  if (gameEnded) return;
 
-    clearAllHighlights();
-    if (selectedPiece) {
-        selectedPiece.classList.remove("selected");
-        selectedPiece = null;
-    }
+  clearAllHighlights();
+  if (selectedPiece) {
+    selectedPiece.classList.remove("selected");
+    selectedPiece = null;
+  }
+  currentPlayer = currentPlayer === "white" ? "black" : "white";
+  updateStatus();
+  highlightCapturablePieces();
+
+  if (!hasLegalMoves(currentPlayer)) {
     currentPlayer = currentPlayer === "white" ? "black" : "white";
     updateStatus();
     highlightCapturablePieces();
+    
+    checkGameEnd();
+  }
+}
 
-    // Check if the current player has any legal moves
-    if (!hasLegalMoves(currentPlayer)) {
-        // If no legal moves, switch to the other player
-        currentPlayer = currentPlayer === "white" ? "black" : "white";
-        updateStatus();
-        highlightCapturablePieces();
-        
-        // Check for game end conditions after switching players
-        checkGameEnd();
+// New function to get the current board position as a string
+function getBoardPosition() {
+  let position = '';
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+      position += square.textContent || '-';
     }
+  }
+  return position + currentPlayer;
+}
+
+// New function to update position history
+function updatePositionHistory() {
+  const currentPosition = getBoardPosition();
+  positionHistory.push(currentPosition);
+}
+
+// New function to check for threefold repetition
+function isThreefoldRepetition() {
+  const currentPosition = getBoardPosition();
+  return positionHistory.filter(pos => pos === currentPosition).length >= 3;
 }
 
 createBoard();
