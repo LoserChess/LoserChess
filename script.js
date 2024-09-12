@@ -471,7 +471,7 @@ function showWinScreen(winner) {
     winScreen.className = 'win-screen';
     winScreen.innerHTML = `
         <h1>${winner} Wins!</h1>
-        <p>Congratulations! ${winner} was able to lose all of their pieces and won the game!</p>
+        <p>${winner} was able to lose all of their pieces and won the game!</p>
         <button onclick="resetGame()">Play Again</button>
     `;
     document.body.appendChild(winScreen);
