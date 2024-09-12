@@ -516,7 +516,7 @@ function isCastlingMove(pieceType, fromRow, fromCol, toRow, toCol) {
 }
 
 function updateStatus() {
-  statusDisplay.textContent = `Current player: ${currentPlayer}`;
+  statusDisplay.textContent = `Current Player: ${currentPlayer}`;
 }
 
 // UPDATED FUNCTION
