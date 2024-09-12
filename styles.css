@@ -1,3 +1,30 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.board-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.board-wrapper {
+    display: flex;
+    align-items: center;
+}
+
 .chessboard {
     width: 400px;
     height: 400px;
@@ -5,6 +32,7 @@
     display: grid;
     grid-template-columns: repeat(8, 1fr);
 }
+
 .square {
     width: 50px;
     height: 50px;
@@ -14,21 +42,61 @@
     font-size: 40px;
     cursor: pointer;
 }
+
 .light {
     background-color: #f0d9b5;
 }
+
 .dark {
     background-color: #b58863;
 }
+
 .highlight {
     background-color: rgba(255, 255, 0, 0.5);
 }
+
 .castling-highlight {
     background-color: rgba(0, 0, 255, 0.3);
 }
+
 .selected {
     background-color: rgba(0, 255, 0, 0.3);
 }
+
+.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5);
+}
+
+.file-labels, .rank-labels {
+    display: flex;
+    justify-content: space-around;
+}
+
+.file-labels {
+    width: 400px;
+    padding: 5px 0;
+}
+
+.rank-labels {
+    flex-direction: column;
+    height: 400px;
+    justify-content: space-around;
+    padding: 0 5px;
+}
+
+.file-labels div, .rank-labels div {
+    width: 50px;
+    text-align: center;
+    font-size: 14px;
+    color: #333;
+}
+
+#status {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
 .promotion-modal {
     display: none;
     position: fixed;
@@ -40,14 +108,11 @@
     border: 2px solid #333;
     z-index: 1000;
 }
+
 .promotion-piece {
     font-size: 40px;
     cursor: pointer;
     margin: 0 10px;
-}
-
-.capture-highlight {
-    background-color: rgba(255, 0, 0, 0.5);
 }
 
 .win-screen {
