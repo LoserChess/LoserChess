@@ -164,6 +164,29 @@ function isValidMove(from, to) {
   }
 }
 
+function checkGameEnd() {
+    if (gameEnded) return true; // Prevent multiple checks if the game has already ended
+
+    const whitePieces = document.querySelectorAll('[data-piece^="white"]');
+    const blackPieces = document.querySelectorAll('[data-piece^="black"]');
+
+    if (whitePieces.length === 0) {
+        showEndScreen('White', 'win');
+        gameEnded = true;
+        return true;
+    } else if (blackPieces.length === 0) {
+        showEndScreen('Black', 'win');
+        gameEnded = true;
+        return true;
+    } else if (!hasLegalMoves('white') && !hasLegalMoves('black')) {
+        showEndScreen(null, 'draw');
+        gameEnded = true;
+        return true;
+    }
+
+    return false;
+}
+
 function highlightCapturablePieces() {
   clearCaptureHighlights();
   const oppositePlayer = currentPlayer === "white" ? "black" : "white";
@@ -182,27 +205,27 @@ function highlightCapturablePieces() {
   highlightEnPassantOpportunities();
 }
 
-function hasLegalMoves() {
-  for (let fromRow = 0; fromRow < 8; fromRow++) {
-    for (let fromCol = 0; fromCol < 8; fromCol++) {
-      const fromSquare = document.querySelector(
-        `[data-row="${fromRow}"][data-col="${fromCol}"]`
-      );
-      if (fromSquare.dataset.piece && fromSquare.dataset.piece.startsWith(currentPlayer)) {
-        for (let toRow = 0; toRow < 8; toRow++) {
-          for (let toCol = 0; toCol < 8; toCol++) {
-            const toSquare = document.querySelector(
-              `[data-row="${toRow}"][data-col="${toCol}"]`
+function hasLegalMoves(player) {
+    for (let fromRow = 0; fromRow < 8; fromRow++) {
+        for (let fromCol = 0; fromCol < 8; fromCol++) {
+            const fromSquare = document.querySelector(
+                `[data-row="${fromRow}"][data-col="${fromCol}"]`
             );
-            if (isValidMove(fromSquare, toSquare)) {
-              return true;
+            if (fromSquare.dataset.piece && fromSquare.dataset.piece.startsWith(player)) {
+                for (let toRow = 0; toRow < 8; toRow++) {
+                    for (let toCol = 0; toCol < 8; toCol++) {
+                        const toSquare = document.querySelector(
+                            `[data-row="${toRow}"][data-col="${toCol}"]`
+                        );
+                        if (isValidMove(fromSquare, toSquare)) {
+                            return true;
+                        }
+                    }
+                }
             }
-          }
         }
-      }
     }
-  }
-  return false;
+    return false;
 }
 
 function clearCaptureHighlights() {
@@ -424,8 +447,11 @@ function movePiece(from, to) {
   
     highlightCapturablePieces();
 
-    // Check for win condition
-    checkWinCondition();
+    // Check for win condition immediately after the move
+    if (checkGameEnd()) {
+        return; // If the game has ended, don't proceed with the turn
+    }
+  checkGameEnd();
 }
 
 function highlightValidMoves(piece) {
@@ -466,25 +492,35 @@ function checkWinCondition() {
     return false;
 }
 
-function showWinScreen(winner) {
-    const winScreen = document.createElement('div');
-    winScreen.className = 'win-screen';
-    winScreen.innerHTML = `
-        <h1>${winner} Wins!</h1>
-        <p>${winner} was able to lose all of their pieces and won the game!</p>
-        <button onclick="resetGame()">Play Again</button>
-    `;
-    document.body.appendChild(winScreen);
+function showEndScreen(winner, endType) {
+    const endScreen = document.createElement('div');
+    endScreen.className = 'end-screen';
+    
+    if (endType === 'win') {
+        endScreen.innerHTML = `
+            <h1>${winner} Wins!</h1>
+            <p>${winner} was able to lose all of their pieces and won the game!</p>
+            <button onclick="resetGame()">Play Again</button>
+        `;
+    } else if (endType === 'draw') {
+        endScreen.innerHTML = `
+            <h1>Draw!</h1>
+            <p>Neither player can make a legal move, so this game ends in a draw.</p>
+            <button onclick="resetGame()">Play Again</button>
+        `;
+    }
+    
+    document.body.appendChild(endScreen);
 
     // Disable further moves
     board.removeEventListener('click', handleClick);
 }
 
 function resetGame() {
-    // Remove win screen
-    const winScreen = document.querySelector('.win-screen');
-    if (winScreen) {
-        winScreen.remove();
+    // Remove end screen
+    const endScreen = document.querySelector('.end-screen');
+    if (endScreen) {
+        endScreen.remove();
     }
 
     // Reset the board
@@ -498,6 +534,7 @@ function resetGame() {
     whiteCastlingRights = { kingSide: true, queenSide: true };
     blackCastlingRights = { kingSide: true, queenSide: true };
     lastMove = null;
+    gameEnded = false;
 
     updateStatus();
     highlightCapturablePieces();
@@ -505,6 +542,8 @@ function resetGame() {
     // Re-enable moves
     board.addEventListener('click', handleClick);
 }
+
+let gameEnded = false;
 
 // NEW FUNCTION
 function isCastlingMove(pieceType, fromRow, fromCol, toRow, toCol) {
@@ -586,22 +625,27 @@ function isCapture(from, to) {
 }
 
 function finishTurn() {
-  clearAllHighlights();
-  if (selectedPiece) {
-    selectedPiece.classList.remove("selected");
-    selectedPiece = null;
-  }
-  currentPlayer = currentPlayer === "white" ? "black" : "white";
-  updateStatus();
-  highlightCapturablePieces();
+    if (gameEnded) return; // Prevent further turns if the game has ended
 
-  // Check if the current player has any legal moves
-  if (!hasLegalMoves()) {
-    // If no legal moves, switch to the other player
+    clearAllHighlights();
+    if (selectedPiece) {
+        selectedPiece.classList.remove("selected");
+        selectedPiece = null;
+    }
     currentPlayer = currentPlayer === "white" ? "black" : "white";
     updateStatus();
     highlightCapturablePieces();
-  }
+
+    // Check if the current player has any legal moves
+    if (!hasLegalMoves(currentPlayer)) {
+        // If no legal moves, switch to the other player
+        currentPlayer = currentPlayer === "white" ? "black" : "white";
+        updateStatus();
+        highlightCapturablePieces();
+        
+        // Check for game end conditions after switching players
+        checkGameEnd();
+    }
 }
 
 createBoard();
