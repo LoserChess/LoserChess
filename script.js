@@ -422,7 +422,10 @@ function movePiece(from, to) {
     // Update lastMove for en passant
     lastMove = [fromRow, fromCol, toRow, toCol];
   
-  highlightCapturablePieces();
+    highlightCapturablePieces();
+
+    // Check for win condition
+    checkWinCondition();
 }
 
 function highlightValidMoves(piece) {
@@ -446,6 +449,61 @@ function highlightValidMoves(piece) {
       }
     }
   }
+}
+
+function checkWinCondition() {
+    const whitePieces = document.querySelectorAll('[data-piece^="white"]');
+    const blackPieces = document.querySelectorAll('[data-piece^="black"]');
+
+    if (whitePieces.length === 0) {
+        showWinScreen('White');
+        return true;
+    } else if (blackPieces.length === 0) {
+        showWinScreen('Black');
+        return true;
+    }
+
+    return false;
+}
+
+function showWinScreen(winner) {
+    const winScreen = document.createElement('div');
+    winScreen.className = 'win-screen';
+    winScreen.innerHTML = `
+        <h1>${winner} Wins!</h1>
+        <p>Congratulations! ${winner} was able to lose all of their pieces and won the game!</p>
+        <button onclick="resetGame()">Play Again</button>
+    `;
+    document.body.appendChild(winScreen);
+
+    // Disable further moves
+    board.removeEventListener('click', handleClick);
+}
+
+function resetGame() {
+    // Remove win screen
+    const winScreen = document.querySelector('.win-screen');
+    if (winScreen) {
+        winScreen.remove();
+    }
+
+    // Reset the board
+    board.innerHTML = '';
+    createBoard();
+    
+    // Reset game state
+    currentPlayer = "white";
+    selectedPiece = null;
+    promotionSquare = null;
+    whiteCastlingRights = { kingSide: true, queenSide: true };
+    blackCastlingRights = { kingSide: true, queenSide: true };
+    lastMove = null;
+
+    updateStatus();
+    highlightCapturablePieces();
+
+    // Re-enable moves
+    board.addEventListener('click', handleClick);
 }
 
 // NEW FUNCTION
