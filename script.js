@@ -516,7 +516,7 @@ function isCastlingMove(pieceType, fromRow, fromCol, toRow, toCol) {
 }
 
 function updateStatus() {
-  statusDisplay.textContent = `Current Player: ${currentPlayer}`;
+  statusDisplay.textContent = `Current Player: ${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}`;
 }
 
 // UPDATED FUNCTION
@@ -601,7 +601,6 @@ function finishTurn() {
     currentPlayer = currentPlayer === "white" ? "black" : "white";
     updateStatus();
     highlightCapturablePieces();
-    statusDisplay.textContent += " - No legal moves, turn skipped.";
   }
 }
 
