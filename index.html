@@ -36,6 +36,41 @@
         <h2>Choose promotion piece:</h2>
         <div id="promotionPieces"></div>
     </div>
+    <div id="rulesButton" class="rules-button">?</div>
+    <div id="rulesModal" class="rules-modal">
+        <div class="rules-content">
+            <h2>Squares</h2>
+            <div class="square-legend">
+                <div class="legend-item">
+                    <div class="square highlight"></div>
+                    <span>Where a piece can move</span>
+                </div>
+                <div class="legend-item">
+                    <div class="square selected"></div>
+                    <span>Selected piece</span>
+                </div>
+                <div class="legend-item">
+                    <div class="square castling-highlight"></div>
+                    <span>Where the king can castle</span>
+                </div>
+                <div class="legend-item">
+                    <div class="square capture-highlight"></div>
+                    <span>Must capture</span>
+                </div>
+            </div>
+            <h3>Rules:</h3>
+            <ul class="rules-list">
+                <li>All pieces move the same as normal chess</li>
+                <li>The winner of the game is the first player to lose all of their pieces</li>
+                <li>The game ends in a draw if neither player has a legal move, the same board position is repeated 3 times in 1 game or if in a 50 move span no player has captured a piece or moved a pawn</li>
+                <li>If you can take one of the opposition players pieces you must </li>
+                <li>The king is a regular piece. No check or checkmate rules apply. It can take and be taken like a normal piece</li>
+                <li>If only 1 player can't make a legal move their turn is skipped</li>
+                <li>If you are able to take multiple of the opposition player's pieces you may take any piece you like</li>
+            </ul>
+            <button id="closeRules">Close</button>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
