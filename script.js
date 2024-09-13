@@ -1,731 +1,327 @@
-const board = document.getElementById("chessboard");
-const statusDisplay = document.getElementById("status");
-const promotionModal = document.getElementById("promotionModal");
-const promotionPieces = document.getElementById("promotionPieces");
-let selectedPiece = null;
-let currentPlayer = "white";
-let promotionSquare = null;
-
-const pieces = {
-  white: ["♖", "♘", "♗", "♕", "♔", "♗", "♘", "♖"],
-  black: ["♜", "♞", "♝", "♛", "♚", "♝", "♞", "♜"]
-};
-
-const promotionPieceSymbols = {
-  white: ["♕", "♖", "♗", "♘"],
-  black: ["♛", "♜", "♝", "♞"]
-};
-
-let whiteCastlingRights = { kingSide: true, queenSide: true };
-let blackCastlingRights = { kingSide: true, queenSide: true };
-
-let lastMove = null;
-let gameEnded = false;
-
-// New variables for 3-fold repetition and 50-move rules
-let positionHistory = [];
-let movesSinceCaptureOrPawn = 0;
-
-function createBoard() {
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const square = document.createElement("div");
-      square.className = `square ${(row + col) % 2 === 0 ? "light" : "dark"}`;
-      square.dataset.row = row;
-      square.dataset.col = col;
-
-      if (row === 0) {
-        square.textContent = pieces.black[col];
-        square.dataset.piece = "black" + pieces.black[col];
-      } else if (row === 1) {
-        square.textContent = "♟";
-        square.dataset.piece = "black♟";
-      } else if (row === 6) {
-        square.textContent = "♙";
-        square.dataset.piece = "white♙";
-      } else if (row === 7) {
-        square.textContent = pieces.white[col];
-        square.dataset.piece = "white" + pieces.white[col];
-      }
-
-      square.addEventListener("click", handleClick);
-      board.appendChild(square);
-    }
-  }
-  updateStatus();
-  highlightCapturablePieces();
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
 }
 
-function handleClick(e) {
-  const square = e.target;
-
-  if (selectedPiece) {
-    if (isValidMove(selectedPiece, square)) {
-      movePiece(selectedPiece, square);
-      if (isPawnPromotion(square)) {
-        showPromotionModal(square);
-      } else {
-        finishTurn();
-      }
-    } else if (
-      square.dataset.piece &&
-      square.dataset.piece.startsWith(currentPlayer)
-    ) {
-      selectedPiece.classList.remove("selected");
-      selectedPiece = square;
-      square.classList.add("selected");
-      highlightValidMoves(square);
-    }
-  } else if (
-    square.dataset.piece &&
-    square.dataset.piece.startsWith(currentPlayer)
-  ) {
-    selectedPiece = square;
-    square.classList.add("selected");
-    highlightValidMoves(square);
-  }
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-function isValidMove(from, to) {
-    const pieceType = from.textContent;
-    const fromRow = parseInt(from.dataset.row);
-    const fromCol = parseInt(from.dataset.col);
-    const toRow = parseInt(to.dataset.row);
-    const toCol = parseInt(to.dataset.col);
-
-    if (to.dataset.piece && to.dataset.piece.startsWith(currentPlayer)) {
-        return false;  // Can't capture own piece
-    }
-
-    const rowDiff = toRow - fromRow;
-    const colDiff = toCol - fromCol;
-
-    switch (pieceType) {
-        case '♙': // White pawn
-            if (colDiff === 0) {  // Moving forward
-                if (to.dataset.piece) {
-                    return false;  // Can't capture forward
-                }
-                if (fromRow === 6) {  // First move
-                    return rowDiff === -1 || (rowDiff === -2 && !isPathBlocked(fromRow, fromCol, toRow, toCol));
-                } else {
-                    return rowDiff === -1;
-                }
-            } else if (Math.abs(colDiff) === 1 && rowDiff === -1) {  // Diagonal capture or en passant
-                return to.dataset.piece || isEnPassant(fromRow, fromCol, toRow, toCol);
-            }
-            return false;
-        case '♟': // Black pawn
-            if (colDiff === 0) {  // Moving forward
-                if (to.dataset.piece) {
-                    return false;  // Can't capture forward
-                }
-                if (fromRow === 1) {  // First move
-                    return rowDiff === 1 || (rowDiff === 2 && !isPathBlocked(fromRow, fromCol, toRow, toCol));
-                } else {
-                    return rowDiff === 1;
-                }
-            } else if (Math.abs(colDiff) === 1 && rowDiff === 1) {  // Diagonal capture or en passant
-                return to.dataset.piece || isEnPassant(fromRow, fromCol, toRow, toCol);
-            }
-            return false;
-    case "♖":
-    case "♜": // Rook
-      return (
-        (fromRow === toRow || fromCol === toCol) &&
-        !isPathBlocked(fromRow, fromCol, toRow, toCol)
-      );
-    case "♘":
-    case "♞": // Knight
-      return (
-        (Math.abs(rowDiff) === 2 && Math.abs(colDiff) === 1) ||
-        (Math.abs(rowDiff) === 1 && Math.abs(colDiff) === 2)
-      );
-    case "♗":
-    case "♝": // Bishop
-      return (
-        Math.abs(rowDiff) === Math.abs(colDiff) &&
-        !isPathBlocked(fromRow, fromCol, toRow, toCol)
-      );
-    case "♕":
-    case "♛": // Queen
-      return (
-        (fromRow === toRow ||
-          fromCol === toCol ||
-          Math.abs(rowDiff) === Math.abs(colDiff)) &&
-        !isPathBlocked(fromRow, fromCol, toRow, toCol)
-      );
-    case "♔":
-    case "♚": // King
-      if (Math.abs(rowDiff) <= 1 && Math.abs(colDiff) <= 1) {
-        return true;
-      } else if (Math.abs(colDiff) === 2 && rowDiff === 0) {
-        // Check for castling
-        return canCastle(fromRow, fromCol, toCol);
-      }
-      return false;
-    default:
-      return false;
-  }
+.board-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-function checkGameEnd() {
-  if (gameEnded) return true;
-
-  const whitePieces = document.querySelectorAll('[data-piece^="white"]');
-  const blackPieces = document.querySelectorAll('[data-piece^="black"]');
-
-  if (whitePieces.length === 0) {
-    showEndScreen('White', 'win');
-    gameEnded = true;
-    return true;
-  } else if (blackPieces.length === 0) {
-    showEndScreen('Black', 'win');
-    gameEnded = true;
-    return true;
-  } else if (!hasLegalMoves('white') && !hasLegalMoves('black')) {
-    showEndScreen(null, 'draw');
-    gameEnded = true;
-    return true;
-  } else if (isThreefoldRepetition()) {
-    showEndScreen(null, 'draw', 'Threefold Repetition');
-    gameEnded = true;
-    return true;
-  } else if (movesSinceCaptureOrPawn >= 100) {
-    showEndScreen(null, 'draw', '50-Move Rule');
-    gameEnded = true;
-    return true;
-  }
-
-  return false;
+.board-wrapper {
+    display: flex;
+    align-items: center;
 }
 
-function highlightCapturablePieces() {
-  clearCaptureHighlights();
-  const oppositePlayer = currentPlayer === "white" ? "black" : "white";
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const square = document.querySelector(
-        `[data-row="${row}"][data-col="${col}"]`
-      );
-      if (square.dataset.piece && square.dataset.piece.startsWith(oppositePlayer)) {
-        if (canBeCaptured(square)) {
-          square.classList.add("capture-highlight");
-        }
-      }
-    }
-  }
-  highlightEnPassantOpportunities();
+.chessboard {
+    width: 400px;
+    height: 400px;
+    border: 2px solid #333;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
 }
 
-function hasLegalMoves(player) {
-    for (let fromRow = 0; fromRow < 8; fromRow++) {
-        for (let fromCol = 0; fromCol < 8; fromCol++) {
-            const fromSquare = document.querySelector(
-                `[data-row="${fromRow}"][data-col="${fromCol}"]`
-            );
-            if (fromSquare.dataset.piece && fromSquare.dataset.piece.startsWith(player)) {
-                for (let toRow = 0; toRow < 8; toRow++) {
-                    for (let toCol = 0; toCol < 8; toCol++) {
-                        const toSquare = document.querySelector(
-                            `[data-row="${toRow}"][data-col="${toCol}"]`
-                        );
-                        if (isValidMove(fromSquare, toSquare)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return false;
+.square {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    cursor: pointer;
 }
 
-function clearCaptureHighlights() {
-  document.querySelectorAll(".capture-highlight").forEach((square) => {
-    square.classList.remove("capture-highlight");
-  });
+.light {
+    background-color: #f0d9b5;
 }
 
-function highlightEnPassantOpportunities() {
-  if (!lastMove) return;
-
-  const [lastFromRow, lastFromCol, lastToRow, lastToCol] = lastMove;
-  const lastMovePiece = document.querySelector(`[data-row="${lastToRow}"][data-col="${lastToCol}"]`).textContent;
-
-  if ((lastMovePiece === '♙' && lastFromRow === 6 && lastToRow === 4) ||
-      (lastMovePiece === '♟' && lastFromRow === 1 && lastToRow === 3)) {
-    const enPassantRow = currentPlayer === 'white' ? 3 : 4;
-    const leftCol = lastToCol - 1;
-    const rightCol = lastToCol + 1;
-
-    [leftCol, rightCol].forEach(col => {
-      if (col >= 0 && col < 8) {
-        const square = document.querySelector(`[data-row="${enPassantRow}"][data-col="${col}"]`);
-        if (square.dataset.piece && square.dataset.piece.startsWith(currentPlayer) &&
-            (square.textContent === '♙' || square.textContent === '♟')) {
-          const targetSquare = document.querySelector(`[data-row="${lastToRow}"][data-col="${lastToCol}"]`);
-          targetSquare.classList.add("capture-highlight");
-        }
-      }
-    });
-  }
+.dark {
+    background-color: #b58863;
 }
 
-function canBeCaptured(targetSquare) {
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const square = document.querySelector(
-        `[data-row="${row}"][data-col="${col}"]`
-      );
-      if (square.dataset.piece && square.dataset.piece.startsWith(currentPlayer)) {
-        if (isValidMove(square, targetSquare)) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
+.highlight {
+    background-color: rgba(255, 255, 0, 0.5);
 }
 
-function highlightCapturableFromSquare(fromSquare) {
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const toSquare = document.querySelector(
-        `[data-row="${row}"][data-col="${col}"]`
-      );
-      if (isValidMove(fromSquare, toSquare) && isCapture(fromSquare, toSquare)) {
-        toSquare.classList.add("capture-highlight");
-      }
-    }
-  }
+.castling-highlight {
+    background-color: rgba(0, 0, 255, 0.3);
 }
 
-function isEnPassant(fromRow, fromCol, toRow, toCol) {
-    if (!lastMove) return false;
-
-    const [lastFromRow, lastFromCol, lastToRow, lastToCol] = lastMove;
-    const lastPiece = document.querySelector(`[data-row="${lastToRow}"][data-col="${lastToCol}"]`).textContent;
-
-    return (
-        (lastPiece === '♙' || lastPiece === '♟') &&
-        Math.abs(lastToRow - lastFromRow) === 2 &&
-        lastToCol === toCol &&
-        ((currentPlayer === 'white' && fromRow === 3 && toRow === 2) ||
-         (currentPlayer === 'black' && fromRow === 4 && toRow === 5)) &&
-        Math.abs(fromCol - lastToCol) === 1
-    );
+.selected {
+    background-color: rgba(0, 255, 0, 0.3);
 }
 
-function isPathBlocked(fromRow, fromCol, toRow, toCol) {
-  const rowStep = Math.sign(toRow - fromRow);
-  const colStep = Math.sign(toCol - fromCol);
-  let currentRow = fromRow + rowStep;
-  let currentCol = fromCol + colStep;
-
-  while (currentRow !== toRow || currentCol !== toCol) {
-    const square = document.querySelector(
-      `[data-row="${currentRow}"][data-col="${currentCol}"]`
-    );
-    if (square.dataset.piece) {
-      return true; // Path is blocked
-    }
-    currentRow += rowStep;
-    currentCol += colStep;
-  }
-  return false; // Path is clear
+.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5);
 }
 
-function canCastle(fromRow, fromCol, toCol) {
-  const isKingSide = toCol > fromCol;
-  const castlingRights =
-    currentPlayer === "white" ? whiteCastlingRights : blackCastlingRights;
-
-  if (
-    (isKingSide && !castlingRights.kingSide) ||
-    (!isKingSide && !castlingRights.queenSide)
-  ) {
-    return false;
-  }
-
-  const rookCol = isKingSide ? 7 : 0;
-  const rookSquare = document.querySelector(
-    `[data-row="${fromRow}"][data-col="${rookCol}"]`
-  );
-
-  if (!rookSquare || !rookSquare.textContent.match(/[♖♜]/)) {
-    return false;
-  }
-
-  // Check if the path is clear
-  const startCol = Math.min(fromCol, rookCol);
-  const endCol = Math.max(fromCol, rookCol);
-  for (let col = startCol + 1; col < endCol; col++) {
-    if (
-      document.querySelector(`[data-row="${fromRow}"][data-col="${col}"]`)
-        .dataset.piece
-    ) {
-      return false; // Path is not clear
-    }
-  }
-
-  // Check if the king is not in check and doesn't pass through check
-  for (let col = fromCol; col !== toCol; col += isKingSide ? 1 : -1) {
-    if (isSquareUnderAttack(fromRow, col)) {
-      return false;
-    }
-  }
-
-  return true;
+.file-labels, .rank-labels {
+    display: flex;
+    justify-content: space-around;
 }
 
-function isSquareUnderAttack(row, col) {
-  const oppositePlayer = currentPlayer === "white" ? "black" : "white";
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      const square = document.querySelector(
-        `[data-row="${r}"][data-col="${c}"]`
-      );
-      if (
-        square.dataset.piece &&
-        square.dataset.piece.startsWith(oppositePlayer)
-      ) {
-        if (
-          isValidMove(
-            square,
-            document.querySelector(`[data-row="${row}"][data-col="${col}"]`)
-          )
-        ) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
+.file-labels {
+    width: 400px;
+    padding: 5px 0;
 }
 
-function movePiece(from, to) {
-    const pieceType = from.textContent;
-    const fromRow = parseInt(from.dataset.row);
-    const fromCol = parseInt(from.dataset.col);
-    const toRow = parseInt(to.dataset.row);
-    const toCol = parseInt(to.dataset.col);
-
-    // Check if it's a capture or pawn move
-  const isCapture = to.dataset.piece || isEnPassant(fromRow, fromCol, toRow, toCol);
-  const isPawnMove = pieceType === '♙' || pieceType === '♟';
-
-  if (isCapture || isPawnMove) {
-    movesSinceCaptureOrPawn = 0;
-  } else {
-    movesSinceCaptureOrPawn++;
-  }
-  
-    // Check for en passant capture
-    if ((pieceType === '♙' || pieceType === '♟') && Math.abs(fromCol - toCol) === 1 && !to.dataset.piece) {
-        const capturedPawnRow = currentPlayer === 'white' ? toRow + 1 : toRow - 1;
-        const capturedPawn = document.querySelector(`[data-row="${capturedPawnRow}"][data-col="${toCol}"]`);
-        capturedPawn.textContent = '';
-        delete capturedPawn.dataset.piece;
-    }
-
-    // Check for castling
-    if ((pieceType === '♔' || pieceType === '♚') && Math.abs(toCol - fromCol) === 2) {
-        const isKingSide = toCol > fromCol;
-        const rookFromCol = isKingSide ? 7 : 0;
-        const rookToCol = isKingSide ? toCol - 1 : toCol + 1;
-        const rookFrom = document.querySelector(`[data-row="${fromRow}"][data-col="${rookFromCol}"]`);
-        const rookTo = document.querySelector(`[data-row="${fromRow}"][data-col="${rookToCol}"]`);
-        
-        // Move the rook
-        rookTo.textContent = rookFrom.textContent;
-        rookTo.dataset.piece = rookFrom.dataset.piece;
-        rookFrom.textContent = '';
-        delete rookFrom.dataset.piece;
-    }
-
-    // Update castling rights
-    if (pieceType === '♔') {
-        whiteCastlingRights.kingSide = false;
-        whiteCastlingRights.queenSide = false;
-    } else if (pieceType === '♚') {
-        blackCastlingRights.kingSide = false;
-        blackCastlingRights.queenSide = false;
-    } else if (pieceType === '♖') {
-        if (fromCol === 0) whiteCastlingRights.queenSide = false;
-        if (fromCol === 7) whiteCastlingRights.kingSide = false;
-    } else if (pieceType === '♜') {
-        if (fromCol === 0) blackCastlingRights.queenSide = false;
-        if (fromCol === 7) blackCastlingRights.kingSide = false;
-    }
-
-    // Move the piece
-    to.textContent = from.textContent;
-    to.dataset.piece = from.dataset.piece;
-    from.textContent = '';
-    delete from.dataset.piece;
-
-    // Update lastMove for en passant
-    lastMove = [fromRow, fromCol, toRow, toCol];
-  
-      updatePositionHistory();
-
-  highlightCapturablePieces();
-
-  if (checkGameEnd()) {
-    return;
-  }
+.rank-labels {
+    flex-direction: column;
+    height: 400px;
+    justify-content: space-around;
+    padding: 0 5px;
 }
 
-function highlightValidMoves(piece) {
-  clearAllHighlights();
-  const fromRow = parseInt(piece.dataset.row);
-  const fromCol = parseInt(piece.dataset.col);
-  const pieceType = piece.textContent;
-
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const square = document.querySelector(
-        `[data-row="${row}"][data-col="${col}"]`
-      );
-      if (isValidMove(piece, square)) {
-        if (isCastlingMove(pieceType, fromRow, fromCol, row, col)) {
-          square.classList.add("castling-highlight");
-        } else if (isCapture(piece, square)) {
-          square.classList.add("capture-highlight");
-        } else {
-          square.classList.add("highlight");
-        }
-      }
-    }
-  }
-  piece.classList.add("selected");
+.file-labels div, .rank-labels div {
+    width: 50px;
+    text-align: center;
+    font-size: 14px;
+    color: #333;
 }
 
-function checkWinCondition() {
-    const whitePieces = document.querySelectorAll('[data-piece^="white"]');
-    const blackPieces = document.querySelectorAll('[data-piece^="black"]');
-
-    if (whitePieces.length === 0) {
-        showWinScreen('White');
-        return true;
-    } else if (blackPieces.length === 0) {
-        showWinScreen('Black');
-        return true;
-    }
-
-    return false;
+#status {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
 }
 
-function showEndScreen(winner, endType, reason = '') {
-  const endScreen = document.createElement('div');
-  endScreen.className = 'end-screen';
-  
-  if (endType === 'win') {
-    endScreen.innerHTML = `
-      <h1>${winner} Wins!</h1>
-      <p>${winner} was able to lose all of their pieces and won the game!</p>
-      <button onclick="resetGame()">Play Again</button>
-    `;
-  } else if (endType === 'draw') {
-    endScreen.innerHTML = `
-      <h1>Draw!</h1>
-      <p>${reason ? reason : 'Neither player can make a legal move, so this game ends in a draw.'}</p>
-      <button onclick="resetGame()">Play Again</button>
-    `;
-  }
-  
-  document.body.appendChild(endScreen);
-
-  board.removeEventListener('click', handleClick);
+.promotion-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border: 2px solid #333;
+    z-index: 1000;
 }
 
-function resetGame() {
-  const endScreen = document.querySelector('.end-screen');
-  if (endScreen) {
-    endScreen.remove();
-  }
-
-  board.innerHTML = '';
-  createBoard();
-  
-  currentPlayer = "white";
-  selectedPiece = null;
-  promotionSquare = null;
-  whiteCastlingRights = { kingSide: true, queenSide: true };
-  blackCastlingRights = { kingSide: true, queenSide: true };
-  lastMove = null;
-  gameEnded = false;
-  positionHistory = [];
-  movesSinceCaptureOrPawn = 0;
-
-  updateStatus();
-  highlightCapturablePieces();
-
-  board.addEventListener('click', handleClick);
+.promotion-piece {
+    font-size: 40px;
+    cursor: pointer;
+    margin: 0 10px;
 }
 
-// NEW FUNCTION
-function isCastlingMove(pieceType, fromRow, fromCol, toRow, toCol) {
-  return (
-    (pieceType === "♔" || pieceType === "♚") &&
-    fromRow === toRow &&
-    Math.abs(toCol - fromCol) === 2
-  );
+.win-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 24px;
+    z-index: 2000;
 }
 
-function updateStatus() {
-  statusDisplay.textContent = `Current Player: ${currentPlayer.charAt(0).toUpperCase() + currentPlayer.slice(1)}`;
+.win-screen button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
 }
 
-// UPDATED FUNCTION
-function clearHighlights() {
-  document
-    .querySelectorAll(".highlight, .castling-highlight")
-    .forEach((square) => {
-      square.classList.remove("highlight", "castling-highlight");
-    });
+.end-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 24px;
+    z-index: 2000;
+}
+.end-screen button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
 }
 
-function clearAllHighlights() {
-  document
-    .querySelectorAll("#chessboard .highlight, #chessboard .castling-highlight, #chessboard .capture-highlight, #chessboard .selected")
-    .forEach((square) => {
-      square.classList.remove("highlight", "castling-highlight", "capture-highlight", "selected");
-    });
+.game-title {
+    font-size: 36px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: #333;
 }
 
-function setupRuleHighlights() {
-    document.querySelector('.square-legend .square.highlight').classList.add('highlight');
-    document.querySelector('.square-legend .square.selected').classList.add('selected');
-    document.querySelector('.square-legend .square.castling-highlight').classList.add('castling-highlight');
-    // The capture-highlight-example class is already in the HTML, so we don't need to add it here
+.rules-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: #333;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1000;
 }
 
-function isPawnPromotion(square) {
-  const pieceType = square.textContent;
-  const row = parseInt(square.dataset.row);
-  return (pieceType === "♙" && row === 0) || (pieceType === "♟" && row === 7);
+.rules-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
 }
 
-function showPromotionModal(square) {
-  promotionSquare = square;
-  promotionPieces.innerHTML = "";
-  promotionPieceSymbols[currentPlayer].forEach((piece) => {
-    const pieceElement = document.createElement("span");
-    pieceElement.textContent = piece;
-    pieceElement.className = "promotion-piece";
-    pieceElement.addEventListener("click", () => handlePromotion(piece));
-    promotionPieces.appendChild(pieceElement);
-  });
-  promotionModal.style.display = "block";
+.square-legend .square {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    border: 1px solid #333;
 }
 
-function handlePromotion(piece) {
-  promotionSquare.textContent = piece;
-  promotionSquare.dataset.piece = currentPlayer + piece;
-  promotionModal.style.display = "none";
-  finishTurn();
+.square-legend .square.highlight {
+    background-color: rgba(255, 255, 0, 0.5);
 }
 
-function isCapture(from, to) {
-  const fromRow = parseInt(from.dataset.row);
-  const fromCol = parseInt(from.dataset.col);
-  const toRow = parseInt(to.dataset.row);
-  const toCol = parseInt(to.dataset.col);
-  const pieceType = from.textContent;
-
-  // Regular capture
-  if (to.dataset.piece && !to.dataset.piece.startsWith(currentPlayer)) {
-    return true;
-  }
-
-  // En passant capture
-  if ((pieceType === '♙' || pieceType === '♟') && 
-      Math.abs(fromCol - toCol) === 1 && 
-      !to.dataset.piece && 
-      isEnPassant(fromRow, fromCol, toRow, toCol)) {
-    return true;
-  }
-
-  return false;
+.square-legend .square.selected {
+    background-color: rgba(0, 255, 0, 0.3);
 }
 
-function finishTurn() {
-  if (gameEnded) return;
-
-  clearAllHighlights();
-  if (selectedPiece) {
-    selectedPiece.classList.remove("selected");
-    selectedPiece = null;
-  }
-  currentPlayer = currentPlayer === "white" ? "black" : "white";
-  updateStatus();
-  highlightCapturablePieces();
-
-  if (!hasLegalMoves(currentPlayer)) {
-    currentPlayer = currentPlayer === "white" ? "black" : "white";
-    updateStatus();
-    highlightCapturablePieces();
-    
-    checkGameEnd();
-  }
+.square-legend .square.castling-highlight {
+    background-color: rgba(0, 0, 255, 0.3);
 }
 
-// New function to get the current board position as a string
-function getBoardPosition() {
-  let position = '';
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-      position += square.textContent || '-';
-    }
-  }
-  return position + currentPlayer;
+.square-legend .square.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5);
 }
 
-// New function to update position history
-function updatePositionHistory() {
-  const currentPosition = getBoardPosition();
-  positionHistory.push(currentPosition);
+.capture-highlight, .square-legend .square.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5) !important;
 }
 
-// New function to check for threefold repetition
-function isThreefoldRepetition() {
-  const currentPosition = getBoardPosition();
-  return positionHistory.filter(pos => pos === currentPosition).length >= 3;
+.rules-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 60%; /* Increased width */
+    max-width: 800px; /* Added max-width for very large screens */
+    max-height: 80%;
+    overflow-y: auto;
 }
 
-function initializeRulesModal() {
-    const rulesButton = document.getElementById('rulesButton');
-    const rulesModal = document.getElementById('rulesModal');
-    const closeRules = document.getElementById('closeRules');
-
-    rulesButton.addEventListener('click', () => {
-        rulesModal.style.display = 'block';
-    });
-
-    closeRules.addEventListener('click', () => {
-        rulesModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === rulesModal) {
-            rulesModal.style.display = 'none';
-        }
-    });
+.square-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin-bottom: 20px;
 }
 
-function initializeGame() {
-    createBoard();
-    updateStatus();
-    highlightCapturablePieces();
-    initializeRulesModal();
-    setupRuleHighlights(); // Add this line
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 10px;
+    width: calc(50% - 20px); /* Two items per row */
 }
 
-// Make sure to call initializeGame when the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    initializeGame();
-    setupRuleHighlights();
-});
+.legend-item .square {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    border: 1px solid #333;
+}
+
+/* Specific styles for each square type */
+.legend-item .square.highlight {
+    background-color: rgba(255, 255, 0, 0.5);
+}
+
+.legend-item .square.selected {
+    background-color: rgba(0, 255, 0, 0.3);
+}
+
+.legend-item .square.castling-highlight {
+    background-color: rgba(0, 0, 255, 0.3);
+}
+
+.legend-item .square.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5);
+}
+
+.rules-list {
+    text-align: left;
+    padding-left: 20px;
+}
+
+#closeRules {
+    display: block;
+    margin: 20px auto 0;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Add some spacing for the new "Rules:" heading */
+.rules-content h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.rules-content .square-legend .square.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5) !important;
+}
+
+.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5) !important;
+}
+
+/* Add a specific class for the example in the legend */
+.capture-highlight-example {
+    background-color: #ff0000 !important; /* Solid red color */
+}
+
+/* Ensure the squares in the legend have a visible border */
+.square-legend .square {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #333;
+    display: inline-block;
+}
+
+/* Additional styling for the legend items if needed */
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.legend-item span {
+    margin-left: 10px;
+}
