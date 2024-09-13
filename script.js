@@ -596,10 +596,10 @@ function clearAllHighlights() {
 }
 
 function setupRuleHighlights() {
-  document.querySelector('.square-legend .square.highlight').classList.add('highlight');
-  document.querySelector('.square-legend .square.selected').classList.add('selected');
-  document.querySelector('.square-legend .square.castling-highlight').classList.add('castling-highlight');
-  document.querySelector('.square-legend .square.capture-highlight').classList.add('capture-highlight');
+    document.querySelector('.square-legend .square.highlight').classList.add('highlight');
+    document.querySelector('.square-legend .square.selected').classList.add('selected');
+    document.querySelector('.square-legend .square.castling-highlight').classList.add('castling-highlight');
+    // The capture-highlight-example class is already in the HTML, so we don't need to add it here
 }
 
 function isPawnPromotion(square) {
@@ -725,4 +725,7 @@ function initializeGame() {
 }
 
 // Make sure to call initializeGame when the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', initializeGame);
+document.addEventListener('DOMContentLoaded', function() {
+    initializeGame();
+    setupRuleHighlights();
+});
