@@ -479,7 +479,6 @@ function movePiece(from, to) {
 
 function highlightValidMoves(piece) {
   clearAllHighlights();
-  highlightCapturablePieces();
   const fromRow = parseInt(piece.dataset.row);
   const fromCol = parseInt(piece.dataset.col);
   const pieceType = piece.textContent;
@@ -492,12 +491,15 @@ function highlightValidMoves(piece) {
       if (isValidMove(piece, square)) {
         if (isCastlingMove(pieceType, fromRow, fromCol, row, col)) {
           square.classList.add("castling-highlight");
-        } else if (!square.classList.contains("capture-highlight")) {
+        } else if (isCapture(piece, square)) {
+          square.classList.add("capture-highlight");
+        } else {
           square.classList.add("highlight");
         }
       }
     }
   }
+  piece.classList.add("selected");
 }
 
 function checkWinCondition() {
@@ -587,10 +589,17 @@ function clearHighlights() {
 
 function clearAllHighlights() {
   document
-    .querySelectorAll(".highlight, .castling-highlight, .capture-highlight")
+    .querySelectorAll("#chessboard .highlight, #chessboard .castling-highlight, #chessboard .capture-highlight, #chessboard .selected")
     .forEach((square) => {
-      square.classList.remove("highlight", "castling-highlight", "capture-highlight");
+      square.classList.remove("highlight", "castling-highlight", "capture-highlight", "selected");
     });
+}
+
+function setupRuleHighlights() {
+  document.querySelector('.square-legend .square.highlight').classList.add('highlight');
+  document.querySelector('.square-legend .square.selected').classList.add('selected');
+  document.querySelector('.square-legend .square.castling-highlight').classList.add('castling-highlight');
+  document.querySelector('.square-legend .square.capture-highlight').classList.add('capture-highlight');
 }
 
 function isPawnPromotion(square) {
@@ -712,6 +721,7 @@ function initializeGame() {
     updateStatus();
     highlightCapturablePieces();
     initializeRulesModal();
+    setupRuleHighlights(); // Add this line
 }
 
 // Make sure to call initializeGame when the DOM is fully loaded
