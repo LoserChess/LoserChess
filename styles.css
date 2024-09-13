@@ -196,6 +196,33 @@ body {
     z-index: 2000;
 }
 
+.square-legend .square {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    border: 1px solid #333;
+}
+
+.square-legend .square.highlight {
+    background-color: rgba(255, 255, 0, 0.5);
+}
+
+.square-legend .square.selected {
+    background-color: rgba(0, 255, 0, 0.3);
+}
+
+.square-legend .square.castling-highlight {
+    background-color: rgba(0, 0, 255, 0.3);
+}
+
+.square-legend .square.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5);
+}
+
+.capture-highlight, .square-legend .square.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5) !important;
+}
+
 .rules-content {
     position: absolute;
     top: 50%;
