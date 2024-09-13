@@ -687,6 +687,32 @@ function isThreefoldRepetition() {
   return positionHistory.filter(pos => pos === currentPosition).length >= 3;
 }
 
-createBoard();
-updateStatus();
-highlightCapturablePieces();
+function initializeRulesModal() {
+    const rulesButton = document.getElementById('rulesButton');
+    const rulesModal = document.getElementById('rulesModal');
+    const closeRules = document.getElementById('closeRules');
+
+    rulesButton.addEventListener('click', () => {
+        rulesModal.style.display = 'block';
+    });
+
+    closeRules.addEventListener('click', () => {
+        rulesModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === rulesModal) {
+            rulesModal.style.display = 'none';
+        }
+    });
+}
+
+function initializeGame() {
+    createBoard();
+    updateStatus();
+    highlightCapturablePieces();
+    initializeRulesModal();
+}
+
+// Make sure to call initializeGame when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', initializeGame);
