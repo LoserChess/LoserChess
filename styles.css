@@ -166,3 +166,103 @@ body {
     text-align: center;
     color: #333;
 }
+
+.rules-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: #333;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+.rules-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+}
+
+.rules-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 60%; /* Increased width */
+    max-width: 800px; /* Added max-width for very large screens */
+    max-height: 80%;
+    overflow-y: auto;
+}
+
+.square-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin-bottom: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 10px;
+    width: calc(50% - 20px); /* Two items per row */
+}
+
+.legend-item .square {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    border: 1px solid #333;
+}
+
+/* Specific styles for each square type */
+.legend-item .square.highlight {
+    background-color: rgba(255, 255, 0, 0.5);
+}
+
+.legend-item .square.selected {
+    background-color: rgba(0, 255, 0, 0.3);
+}
+
+.legend-item .square.castling-highlight {
+    background-color: rgba(0, 0, 255, 0.3);
+}
+
+.legend-item .square.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5);
+}
+
+.rules-list {
+    text-align: left;
+    padding-left: 20px;
+}
+
+#closeRules {
+    display: block;
+    margin: 20px auto 0;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Add some spacing for the new "Rules:" heading */
+.rules-content h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
