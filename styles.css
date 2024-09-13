@@ -293,3 +293,35 @@ body {
     margin-top: 20px;
     margin-bottom: 10px;
 }
+
+.rules-content .square-legend .square.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5) !important;
+}
+
+.capture-highlight {
+    background-color: rgba(255, 0, 0, 0.5) !important;
+}
+
+/* Add a specific class for the example in the legend */
+.capture-highlight-example {
+    background-color: #ff0000 !important; /* Solid red color */
+}
+
+/* Ensure the squares in the legend have a visible border */
+.square-legend .square {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #333;
+    display: inline-block;
+}
+
+/* Additional styling for the legend items if needed */
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.legend-item span {
+    margin-left: 10px;
+}
